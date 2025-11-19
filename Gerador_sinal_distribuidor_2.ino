@@ -7,7 +7,9 @@
 #define PINO_SAIDA 25  // Pino onde sairá o sinal (GPIO 25)
 
 // Configurações do PWM (LEDC)
-const int canal_pwm = 0;
+// O 'canal_pwm' não é mais usado na configuração inicial
+// O ESP32 atribui o canal automaticamente.
+// const int canal_pwm = 0; // Removido ou não utilizado no setup()
 const int resolucao_pwm = 8; // 8 bits (0-255)
 const int pulsos_por_volta = 2; // 4 Cilindros = 2 pulsos
 
@@ -15,11 +17,18 @@ int rpm_atual = 1000; // Começa em 1000 RPM
 
 void setup() {
   Serial.begin(115200);
-  
-  // Configura o canal PWM
+
+  // A função ledcAttach() agora configura o pino, frequência e resolução
+  // em uma única chamada, substituindo ledcSetup() e ledcAttachPin().
   // Nota: A frequência inicial será atualizada logo abaixo
-  ledcSetup(canal_pwm, 33, resolucao_pwm);
-  ledcAttachPin(PINO_SAIDA, canal_pwm);
+  
+  // ledcSetup(canal_pwm, 33, resolucao_pwm); // REMOVIDA
+  // ledcAttachPin(PINO_SAIDA, canal_pwm);    // REMOVIDA
+  
+  // Nova chamada para associar o pino à configuração inicial de PWM:
+  // ledcAttach(pin, freq, resolution)
+  // Usamos uma frequência inicial baixa, que será atualizada
+  ledcAttach(PINO_SAIDA, 33, resolucao_pwm); 
   
   atualizarFrequencia(rpm_atual);
   
@@ -45,14 +54,18 @@ void loop() {
 
 void atualizarFrequencia(int rpm) {
   // FÓRMULA: Frequencia = (RPM * Pulsos_por_volta) / 60 segundos
-  // Ex: (1000 * 2) / 60 = 33.33 Hz
   double frequencia = (double)(rpm * pulsos_por_volta) / 60.0;
   
-  // Atualiza a frequência do canal
-  ledcSetup(canal_pwm, frequencia, resolucao_pwm);
+  // *IMPORTANTE: NA VERSÃO 3.0+, ledcSetup() foi removida.*
+  // A frequência é atualizada com a nova função ledcAttach(), 
+  // usando o PINO em vez do CANAL como primeiro argumento.
   
+  // ledcSetup(canal_pwm, frequencia, resolucao_pwm); // REMOVIDA
+  ledcAttach(PINO_SAIDA, frequencia, resolucao_pwm); 
+  
+  // ledcWrite(canal_pwm, 128); // Na versão 3.0+, ledcWrite() usa o PINO
   // Mantém Duty Cycle em 50% (128 de 255) para simular onda quadrada perfeita
-  ledcWrite(canal_pwm, 128); 
+  ledcWrite(PINO_SAIDA, 128); 
   
   Serial.print("RPM: ");
   Serial.print(rpm);
